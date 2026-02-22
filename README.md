@@ -1,1112 +1,498 @@
-# CognitiveCompany
-# Agentic Engineering Playbook
+# CognitiveCompany — Agentic AI System
 
-### Claude Code · Sub-Agents · Memory · MCP · VPS Deployment
+**Operator:** Malik Palamar · BuilderBee / Centaurion.me / AOB
+**Stack:** Claude Code · Sub-Agents · Graphiti Memory · MCP · Trigger.dev · Docker · Hostinger VPS
 
-*Malik — BuilderBee / Centaurion.me / AOB*
+---
 
------
+## What This Is
 
-## 0. The Mental Model First (First Principles)
+A self-hosted, sovereign AI agent system. One orchestrator, five specialist sub-agents, persistent episodic memory, durable workflow execution, and a hardened VPS deployment pipeline. No vendor lock-in. Your data, your infrastructure.
 
-Before touching a single file, understand what you’re actually building.
-
-**The City Metaphor**
-
-Think of your agent system as a city:
-
-|City Layer                      |Agent Equivalent                                                                   |
-|--------------------------------|-----------------------------------------------------------------------------------|
-|**City charter / law**          |`CLAUDE.md` — the agent’s constitution. What it is, what it can do, what it cannot.|
-|**Citizens**                    |Sub-agents — specialized workers with narrow jobs                                  |
-|**Highways between districts**  |MCP servers — standardized pipes connecting capabilities                           |
-|**City hall (long-term memory)**|Graphiti / mem0 — persistent knowledge that survives sessions                      |
-|**Short-term working memory**   |The context window — what the agent can “see” right now                            |
-|**Post office**                 |APIs — how agents talk to the outside world                                        |
-|**Zoning laws**                 |Tool permissions — which agent can touch which system                              |
-|**City dispatcher**             |Claude Code orchestrator — routes tasks to the right worker                        |
-
-A single context window is like a desk. You can only put so much on it. Long-term memory is the filing cabinet in the next room. MCP servers are the phone lines to other departments. Sub-agents are colleagues you can delegate to.
-
-**The Core Loop of Any Agent**
-
-```
-PERCEIVE → THINK → ACT → OBSERVE → UPDATE MEMORY → REPEAT
-```
-
-Everything you build is just an elaboration of this loop.
-
------
-
-## 1. Environment Setup
-
-### 1.1 Prerequisites
-
-```bash
-# Node.js 20+ (LTS)
-node --version   # should be 20.x+
-
-# Claude Code CLI
-npm install -g @anthropic-ai/claude-code
-
-# Verify
-claude --version
-
-# Docker (for local MCP servers and services)
-# Install Docker Desktop or:
-curl -fsSL https://get.docker.com | sh
-```
-
-### 1.2 Project Root Structure
-
-Think of this as your “city blueprint” — everything has a known address.
-
-```
-~/agent-workspace/
-├── CLAUDE.md                    # ← The constitution (most important file)
-├── .claude/
-│   ├── settings.json            # Claude Code settings
-│   └── commands/                # Custom slash commands
-│       ├── research.md
-│       ├── draft-post.md
-│       └── project-brief.md
-├── agents/
-│   ├── orchestrator/            # The dispatcher
-│   ├── researcher/              # Deep research sub-agent
-│   ├── writer/                  # Content/copy sub-agent
-│   ├── coder/                   # Engineering sub-agent
-│   ├── pm/                      # Project management sub-agent
-│   └── marketer/                # Marketing automation sub-agent
-├── mcp-servers/
-│   ├── memory/                  # Graphiti / mem0 bridge
-│   ├── browser/                 # Playwright web automation
-│   ├── notion/                  # Notion MCP
-│   └── monday/                  # Monday.com MCP
-├── memory/
-│   ├── graphiti/                # Long-term episodic memory
-│   └── chroma/                  # Vector store for semantic search
-├── workflows/                   # Trigger.dev / workflow definitions
-│   ├── marketing-pipeline.ts
-│   ├── coding-sprint.ts
-│   └── pm-daily-standup.ts
-├── tools/                       # Custom tool implementations
-│   └── web-search.ts
-├── .env                         # API keys (NEVER commit)
-├── .env.example                 # Template to share
-├── docker-compose.yml           # Local services
-└── package.json
-```
-
-### 1.3 Environment Variables (`.env`)
-
-```bash
-# Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Memory
-MEM0_API_KEY=...                 # If using managed mem0
-GRAPHITI_URL=http://localhost:8000
-
-# Vector DB
-CHROMA_HOST=localhost
-CHROMA_PORT=8000
-
-# External Services
-NOTION_TOKEN=...
-MONDAY_API_KEY=...
-GITHUB_TOKEN=...
-BRAVE_SEARCH_API_KEY=...        # For web search MCP
-
-# Deployment
-VPS_HOST=your-vps-ip
-VPS_USER=malik
-TRIGGER_DEV_API_KEY=...
-```
-
------
-
-## 2. The CLAUDE.md File — Agent Constitution
-
-This is the single most important file. Claude Code reads this at startup and treats it as law. Think of it as your agent’s “operating system personality.”
-
-**Key insight:** `CLAUDE.md` files are hierarchical. A root one sets global rules. Sub-agent folders can each have their own `CLAUDE.md` that inherits from the parent but specializes behavior.
-
-### 2.1 Root `CLAUDE.md`
-
-```markdown
-# Agent Workspace — Malik / BuilderBee / Centaurion.me
-
-## Identity & Context
-You are an agentic system operating across three domains:
-1. **BuilderBee** — AI automation tools and consulting
-2. **Centaurion.me** — Human-AI augmentation consulting  
-3. **AOB (Alchemy of Breath)** — Breathwork training organization
-
-Your operator is Malik, systems engineer and fractional CEO. 
-Malik thinks in systems, uses first-principles reasoning, and prefers 
-visual metaphors for complex ideas.
-
-## Core Principles
-- Always prefer modular, composable solutions over monolithic ones
-- Avoid vendor lock-in: design for portability
-- When uncertain, surface the uncertainty rather than guess
-- Preserve data sovereignty: default to self-hosted solutions
-
-## Capabilities Available
-- Web search (Brave MCP)
-- Long-term memory read/write (Graphiti MCP)
-- File system operations (read/write in workspace only)
-- Browser automation (Playwright MCP)
-- Notion read/write (Notion MCP)
-- Monday.com read/write (Monday MCP)
-- GitHub (GitHub MCP)
-- Code execution (Node.js, Python)
-
-## Sub-Agent Protocol
-When delegating to sub-agents:
-1. Provide full context in the Task tool — sub-agents have no memory of the parent conversation
-2. Specify the expected output format explicitly
-3. Sub-agents MUST write their outputs to `/tmp/agent-outputs/[task-id]/`
-4. Always verify sub-agent output before proceeding
-
-## Memory Protocol
-- READ memory at the start of any session involving a known person or project
-- WRITE memory after any meaningful decision, insight, or completed milestone
-- Memory keys follow the pattern: `[entity]:[type]:[timestamp]`
-  - Example: `malik:preference:communication-2025`
-  - Example: `aob:decision:crm-selection-2025-02`
-
-## Constraints
-- Never commit secrets or API keys to any file
-- Never delete files without explicit confirmation
-- Always summarize what you're about to do before multi-step operations
-- When working with production systems, add a [PRODUCTION] warning
-
-## Communication Style
-- Lead with the bottom line, then the reasoning
-- Use metaphors and visual framing when explaining complex concepts
-- Prefer diagrams (Mermaid) over prose for system architecture
-- Be direct: Malik values precision over politeness
-```
-
-### 2.2 Sub-Agent `CLAUDE.md` Example (`agents/researcher/CLAUDE.md`)
-
-```markdown
-# Researcher Sub-Agent
-
-## Role
-You are the Research specialist. Your only job is to gather, synthesize, 
-and return structured intelligence on a given topic.
-
-## Input Contract
-You will receive a JSON task object:
-{
-  "query": "what to research",
-  "depth": "surface|deep",
-  "format": "brief|detailed|structured",
-  "output_path": "/tmp/agent-outputs/[task-id]/research.json"
-}
-
-## Output Contract
-Always write results to the specified output_path as JSON:
-{
-  "query": "original query",
-  "summary": "2-3 sentence synthesis",
-  "key_findings": ["finding 1", "finding 2"],
-  "sources": [{"title": "", "url": "", "relevance": "high|medium|low"}],
-  "confidence": "high|medium|low",
-  "recommended_next_steps": []
-}
-
-## Tools Available
-- web_search: Use for current information
-- memory_read: Check if we've researched this before
-- fetch_url: Deep-read specific pages
-
-## Behavior Rules
-- Cite sources for every claim
-- Flag contradictions between sources
-- Do NOT editorialize — report facts
-```
-
------
-
-## 3. Agent Architecture — The Orchestrator Pattern
-
-### 3.1 The Mental Model
-
-Think of this like a consulting firm:
-
-- **Orchestrator** = Managing Partner (routes work, synthesizes results)
-- **Sub-agents** = Specialist consultants (focused, expert, stateless per session)
-- **MCP servers** = The firm’s tools and databases
-- **Memory layer** = The firm’s institutional knowledge base
+**The mental model:** This is a city. The orchestrator is the dispatcher. Sub-agents are specialist workers. Graphiti/Neo4j is city hall (long-term memory). MCP servers are the phone lines. The VPS is sovereign territory.
 
 ```
 User Request
      │
      ▼
-┌─────────────┐
-│ ORCHESTRATOR │  ← Reads memory, plans, delegates
-└──────┬──────┘
-       │
-  ┌────┼─────────────────┐
-  │    │                 │
-  ▼    ▼                 ▼
-[Researcher] [Coder]  [Marketer]  ← Sub-agents (Task tool)
-  │    │                 │
-  └────┴─────────────────┘
-       │ Results
-       ▼
-┌─────────────┐
-│ ORCHESTRATOR │  ← Synthesizes, writes to memory, responds
-└─────────────┘
+┌────────────────┐
+│  ORCHESTRATOR  │  claude-opus-4-6  — plans, routes, synthesizes
+└───────┬────────┘
+        │
+   ┌────┼──────────────────────────┐
+   ▼    ▼           ▼       ▼      ▼
+[researcher] [coder] [writer] [marketer] [pm]
+      claude-sonnet-4-6 (all sub-agents)
+        │
+        ▼
+┌────────────────────────────────────┐
+│  MEMORY LAYER                      │
+│  Graphiti (episodic) + Neo4j       │
+│  ChromaDB (vector/semantic)        │
+└────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────┐
+│  WORKFLOWS                         │
+│  Trigger.dev (durable execution)   │
+│  Postgres + Redis                  │
+└────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────────────────────┐
+│  HTTP API  (agents/api/server.js)  │
+│  nginx → SSL → VPS                 │
+└────────────────────────────────────┘
 ```
 
-### 3.2 Orchestrator Entry Point (`agents/orchestrator/index.js`)
-
-```javascript
-// agents/orchestrator/index.js
-// The "city dispatcher" — routes tasks to specialist agents
-
-import Anthropic from "@anthropic-ai/sdk";
-import { readMemory, writeMemory } from "../tools/memory.js";
-import { getSystemPrompt } from "./system-prompt.js";
-
-const client = new Anthropic();
-
-export async function runOrchestrator(userRequest, sessionContext = {}) {
-  // Step 1: Load relevant memory
-  const memories = await readMemory({
-    query: userRequest,
-    limit: 10,
-  });
-
-  // Step 2: Build context-rich system prompt
-  const systemPrompt = getSystemPrompt({
-    memories,
-    sessionContext,
-  });
-
-  // Step 3: Run orchestrator with tools (sub-agents + direct tools)
-  const response = await client.messages.create({
-    model: "claude-opus-4-6",          // Orchestrator uses the best model
-    max_tokens: 8096,
-    system: systemPrompt,
-    tools: [
-      {
-        name: "delegate_to_researcher",
-        description: "Delegate research tasks to the research specialist",
-        input_schema: {
-          type: "object",
-          properties: {
-            query: { type: "string", description: "What to research" },
-            depth: { type: "string", enum: ["surface", "deep"] },
-          },
-          required: ["query"],
-        },
-      },
-      {
-        name: "delegate_to_coder",
-        description: "Delegate coding tasks to the engineering specialist",
-        input_schema: {
-          type: "object",
-          properties: {
-            task: { type: "string" },
-            language: { type: "string" },
-            output_type: { type: "string", enum: ["file", "snippet", "review"] },
-          },
-          required: ["task"],
-        },
-      },
-      {
-        name: "write_memory",
-        description: "Save important insights to long-term memory",
-        input_schema: {
-          type: "object",
-          properties: {
-            key: { type: "string" },
-            content: { type: "string" },
-            entity: { type: "string", description: "Who/what this is about" },
-          },
-          required: ["key", "content"],
-        },
-      },
-    ],
-    messages: [{ role: "user", content: userRequest }],
-  });
-
-  // Step 4: Process tool calls (run sub-agents)
-  return await processToolCalls(response, client);
-}
-```
-
------
-
-## 4. Memory Architecture
-
-### 4.1 The Three Layers of Memory
-
-Think of memory like your own cognitive architecture:
-
-|Layer              |Duration       |What it holds                       |Implementation          |
-|-------------------|---------------|------------------------------------|------------------------|
-|**Working memory** |Current session|Active conversation context         |Claude context window   |
-|**Episodic memory**|Months/years   |“What happened, when, with who”     |Graphiti (graph-based)  |
-|**Semantic memory**|Permanent      |Facts, preferences, domain knowledge|ChromaDB (vector search)|
-
-### 4.2 Graphiti Setup (Episodic Memory)
-
-Graphiti stores knowledge as a temporal graph — meaning it knows *when* things happened and how facts evolved over time. Perfect for your exo-cortex vision.
-
-```yaml
-# docker-compose.yml
-version: "3.9"
-services:
-  neo4j:
-    image: neo4j:5.15
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    environment:
-      NEO4J_AUTH: neo4j/your-password
-      NEO4J_PLUGINS: '["apoc"]'
-    volumes:
-      - neo4j_data:/data
-
-  graphiti:
-    image: zepai/graphiti:latest
-    ports:
-      - "8000:8000"
-    environment:
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: your-password
-      OPENAI_API_KEY: ${OPENAI_API_KEY}    # Graphiti uses this for embeddings
-      # Or: ANTHROPIC_API_KEY for Claude embeddings
-    depends_on:
-      - neo4j
-
-  chroma:
-    image: chromadb/chroma:latest
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-
-volumes:
-  neo4j_data:
-  chroma_data:
-```
-
-### 4.3 Memory Tool Implementation (`tools/memory.js`)
-
-```javascript
-// tools/memory.js — Your agent's filing cabinet interface
-
-const GRAPHITI_URL = process.env.GRAPHITI_URL || "http://localhost:8000";
-
-export async function writeMemory({ key, content, entity, metadata = {} }) {
-  const episode = {
-    name: key,
-    episode_body: content,
-    reference_time: new Date().toISOString(),
-    source_description: `Agent session — ${entity || "general"}`,
-    metadata,
-  };
-
-  const response = await fetch(`${GRAPHITI_URL}/episodes`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(episode),
-  });
-
-  return response.json();
-}
-
-export async function readMemory({ query, limit = 5, entity = null }) {
-  const params = new URLSearchParams({
-    query,
-    num_results: limit,
-    ...(entity && { center_node_uuid: entity }),
-  });
-
-  const response = await fetch(`${GRAPHITI_URL}/search?${params}`);
-  const data = await response.json();
-
-  // Return formatted for injection into system prompt
-  return data.results?.map((r) => ({
-    content: r.fact,
-    relevance: r.score,
-    timestamp: r.created_at,
-  }));
-}
-
-// Inject memories into system prompt
-export function formatMemoriesForPrompt(memories = []) {
-  if (!memories.length) return "";
-
-  return `
-## Relevant Memory (from previous sessions)
-${memories.map((m) => `- [${m.timestamp?.slice(0, 10)}] ${m.content}`).join("\n")}
-  `.trim();
-}
-```
-
------
-
-## 5. MCP Server Configuration
-
-MCP servers are the “phone lines” between your agent and capabilities. Configure them in Claude Code’s settings.
-
-### 5.1 Claude Code MCP Config (`.claude/settings.json`)
-
-```json
-{
-  "mcpServers": {
-    "memory": {
-      "command": "node",
-      "args": ["./mcp-servers/memory/index.js"],
-      "env": {
-        "GRAPHITI_URL": "http://localhost:8000"
-      }
-    },
-    "brave-search": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-      "env": {
-        "BRAVE_API_KEY": "${BRAVE_SEARCH_API_KEY}"
-      }
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/home/malik/agent-workspace"
-      ]
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@executeautomation/playwright-mcp-server"]
-    },
-    "notion": {
-      "command": "npx",
-      "args": ["-y", "@notionhq/notion-mcp-server"],
-      "env": {
-        "NOTION_API_TOKEN": "${NOTION_TOKEN}"
-      }
-    },
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"],
-      "env": {
-        "POSTGRES_CONNECTION_STRING": "${DATABASE_URL}"
-      }
-    }
-  },
-  "permissions": {
-    "allow": [
-      "mcp__memory__*",
-      "mcp__filesystem__read_file",
-      "mcp__filesystem__write_file",
-      "mcp__brave-search__*",
-      "mcp__github__*",
-      "mcp__playwright__*"
-    ]
-  }
-}
-```
-
-### 5.2 Custom Memory MCP Server (`mcp-servers/memory/index.js`)
-
-```javascript
-// mcp-servers/memory/index.js
-// Exposes Graphiti to Claude Code as an MCP tool
-
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { writeMemory, readMemory } from "../../tools/memory.js";
-
-const server = new Server(
-  { name: "memory", version: "1.0.0" },
-  { capabilities: { tools: {} } }
-);
-
-server.setRequestHandler("tools/list", async () => ({
-  tools: [
-    {
-      name: "memory_write",
-      description: "Save information to long-term memory (Graphiti)",
-      inputSchema: {
-        type: "object",
-        properties: {
-          key: { type: "string", description: "Unique identifier for this memory" },
-          content: { type: "string", description: "The information to remember" },
-          entity: { type: "string", description: "Who or what this is about" },
-        },
-        required: ["key", "content"],
-      },
-    },
-    {
-      name: "memory_search",
-      description: "Search long-term memory for relevant information",
-      inputSchema: {
-        type: "object",
-        properties: {
-          query: { type: "string" },
-          limit: { type: "number", default: 5 },
-        },
-        required: ["query"],
-      },
-    },
-  ],
-}));
-
-server.setRequestHandler("tools/call", async (request) => {
-  const { name, arguments: args } = request.params;
-
-  if (name === "memory_write") {
-    const result = await writeMemory(args);
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
-  }
-
-  if (name === "memory_search") {
-    const results = await readMemory(args);
-    return { content: [{ type: "text", text: JSON.stringify(results) }] };
-  }
-});
-
-const transport = new StdioServerTransport();
-await server.connect(transport);
-```
-
------
-
-## 6. Custom Slash Commands
-
-These are reusable prompts you invoke with `/command-name` inside Claude Code.
-
-### 6.1 Research Command (`.claude/commands/research.md`)
-
-```markdown
----
-description: Deep research on any topic, output structured intelligence brief
-argument-hint: <topic to research>
 ---
 
-You are activating the Research Agent protocol.
+## Codebase Index
 
-**Topic:** $ARGUMENTS
+### Root
 
-Execute the following research workflow:
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Agent constitution — identity, principles, memory protocol, sub-agent rules. Claude Code reads this at startup. |
+| `.env.example` | All environment variables required to run the system. Copy to `.env` and fill in. |
+| `.gitignore` | Excludes `.env`, `node_modules`, build artifacts, Docker data. |
+| `package.json` | Node.js dependencies: `@anthropic-ai/sdk`, `@modelcontextprotocol/sdk`, `@trigger.dev/sdk`, `express`. |
+| `Dockerfile` | Container build for the agent API. Node 20 Alpine. Exposes port 3000. |
+| `docker-compose.yml` | Local dev stack: Neo4j + Graphiti + ChromaDB. |
+| `docker-compose.prod.yml` | Production VPS stack: adds Postgres, Redis, Trigger.dev webapp, agent-api. All bound to `127.0.0.1` (no public exposure). |
+| `trigger.config.ts` | Trigger.dev project config — points to `workflows/` directory. |
+| `tsconfig.json` | TypeScript config for workflow files. |
 
-1. Search long-term memory for any prior research on this topic
-2. Conduct web searches (minimum 5 queries from different angles)
-3. Synthesize findings into a structured intelligence brief
-4. Save key insights to memory with key: `research:[topic-slug]:[date]`
-
-**Output format:**
-## Intelligence Brief: [Topic]
-**Date:** [today]
-**Confidence:** [high/medium/low]
-
-### Executive Summary (3 sentences max)
-
-### Key Findings
-- Finding 1 (Source: ...)
-- Finding 2 (Source: ...)
-
-### Implications for [BuilderBee/Centaurion/AOB]
-
-### Recommended Actions
-
-### Sources
-```
-
-### 6.2 Marketing Pipeline Command (`.claude/commands/programmatic-ad.md`)
-
-```markdown
----
-description: Generate a programmatic ad content pipeline (Cody Schneider method)
-argument-hint: <niche or product>
 ---
 
-You are activating the Programmatic Ad Pipeline for: $ARGUMENTS
+### `agents/`
 
-Follow this sequence:
+#### `agents/orchestrator/`
 
-1. Research the niche: pain points, language, competitors
-2. Generate 20 content angles (problems, solutions, objections)
-3. For each angle, create:
-   - Hook (first 3 seconds)
-   - Body (problem → agitate → solve)
-   - CTA
-4. Cluster into 5 campaign themes
-5. Output as structured JSON ready for ad platform upload
+| File | Purpose |
+|------|---------|
+| `index.js` | Main entry point. Reads memory → builds system prompt → runs Claude claude-opus-4-6 in a tool-use loop → delegates to sub-agents → writes results to memory. Max 20 turns, 5s memory timeout guard. |
+| `system-prompt.js` | Builds the orchestrator's system prompt by injecting retrieved memories and session context. |
+| `CLAUDE.md` | Orchestrator's own identity card — role, available tools, delegation rules. |
 
-Save the campaign brief to memory: `marketing:ad-campaign:[niche]:[date]`
-```
+**Key behavior:** The orchestrator runs a tool-use loop. Each iteration it either calls a sub-agent tool (`delegate_to_researcher`, `delegate_to_coder`, etc.) or calls `write_memory`. Loop exits when Claude returns `end_turn` or after 20 turns.
 
-### 6.3 Daily Standup Command (`.claude/commands/standup.md`)
-
-```markdown
----
-description: Generate daily standup for all active projects
 ---
 
-Review context and generate a daily standup covering:
+#### `agents/researcher/`
 
-1. Read memory for: AOB pilot, BuilderBee tasks, Centaurion.me tasks
-2. Check any open GitHub issues (via GitHub MCP)
-3. Check Monday.com for overdue tasks
-4. Generate standup in format:
+| File | Purpose |
+|------|---------|
+| `index.js` | Accepts `{ query, depth, sessionId }`. Runs `claude-sonnet-4-6` with web search and memory tools. Returns `{ summary, keyFindings, sources, confidence, recommendedNextSteps }`. Writes output to `/tmp/agent-outputs/[sessionId]/researcher.json`. |
+| `CLAUDE.md` | Researcher identity: cite sources, flag contradictions, no editorializing, structured JSON output contract. |
 
-## Daily Standup — [Date]
+---
 
-**Yesterday:** [completed items]
-**Today:** [planned items]  
-**Blockers:** [anything stuck]
-**Decisions needed:** [items requiring Malik's input]
+#### `agents/coder/`
 
-Save standup to memory: `standup:[date]`
-```
+| File | Purpose |
+|------|---------|
+| `index.js` | Accepts `{ task, language, outputType, sessionId }`. Runs `claude-sonnet-4-6` with code-focused tools. Returns `{ code, explanation, language, outputType }`. Writes to `/tmp/agent-outputs/[sessionId]/coder.json`. |
+| `CLAUDE.md` | Coder identity: no hallucinated APIs, test-first thinking, document all functions, security-conscious. |
 
------
+---
 
-## 7. Workflow Orchestration — Trigger.dev vs Alternatives
+#### `agents/writer/`
 
-### 7.1 The Honest Comparison
+| File | Purpose |
+|------|---------|
+| `index.js` | Accepts `{ task, format, tone, sessionId }`. Runs `claude-sonnet-4-6` for content generation. Returns `{ content, format, wordCount, tone }`. Writes to `/tmp/agent-outputs/[sessionId]/writer.json`. |
+| `CLAUDE.md` | Writer identity: match operator voice (Malik), lead with bottom line, use metaphors, no filler. |
 
-|Tool           |Best For                                          |Trade-offs                          |
-|---------------|--------------------------------------------------|------------------------------------|
-|**Trigger.dev**|Event-driven workflows, great DX, self-hostable   |Requires Node.js, newer ecosystem   |
-|**n8n**        |Visual no-code workflows, huge integration library|Heavier, less code-native           |
-|**Temporal**   |Complex long-running workflows, enterprise-grade  |Steep learning curve                |
-|**BullMQ**     |Simple queue-based jobs, Redis-backed             |No built-in UI, you build everything|
+---
 
-**Recommendation for your stack:** Use **Trigger.dev v3** (self-hostable) for complex workflows + **BullMQ** for simple background jobs. Trigger.dev speaks native TypeScript/JavaScript and has first-class durable execution — meaning if a 30-minute AI workflow crashes, it resumes from where it stopped.
+#### `agents/marketer/`
 
-### 7.2 Trigger.dev Workflow Example (`workflows/marketing-pipeline.ts`)
+| File | Purpose |
+|------|---------|
+| `index.js` | Accepts `{ niche, campaign, objective, sessionId }`. Runs `claude-sonnet-4-6` for ad/content pipeline generation. Returns `{ angles, hooks, campaigns, metadata }`. Writes to `/tmp/agent-outputs/[sessionId]/marketer.json`. |
+| `CLAUDE.md` | Marketer identity: Cody Schneider programmatic method, direct response principles, structured campaign output. |
 
-```typescript
-// workflows/marketing-pipeline.ts
-import { task, wait } from "@trigger.dev/sdk/v3";
-import Anthropic from "@anthropic-ai/sdk";
+---
 
-const client = new Anthropic();
+#### `agents/pm/`
 
-// Sub-task: Research phase
-export const researchTask = task({
-  id: "research-niche",
-  maxDuration: 300, // 5 minutes
-  run: async (payload: { niche: string; sessionId: string }) => {
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      system: "You are a market research specialist...",
-      messages: [
-        {
-          role: "user",
-          content: `Research the ${payload.niche} market. Return JSON with: pain_points, language_patterns, competitors, content_angles`,
-        },
-      ],
-    });
+| File | Purpose |
+|------|---------|
+| `index.js` | Accepts `{ projects, request, sessionId }`. Runs `claude-sonnet-4-6` for standups, task tracking, and project briefs. Returns `{ standup, tasks, blockers, decisions }`. Writes to `/tmp/agent-outputs/[sessionId]/pm.json`. |
+| `CLAUDE.md` | PM identity: surface blockers first, prefer async communication, track across AOB + BuilderBee + Centaurion. |
 
-    return JSON.parse(response.content[0].text);
-  },
-});
+---
 
-// Sub-task: Content generation
-export const contentGenerationTask = task({
-  id: "generate-ad-content",
-  maxDuration: 600,
-  run: async (payload: { research: object; niche: string }) => {
-    const response = await client.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 8096,
-      system: "You are a direct response copywriter...",
-      messages: [
-        {
-          role: "user",
-          content: `Based on this research: ${JSON.stringify(payload.research)}\n\nGenerate 20 ad variations for ${payload.niche}`,
-        },
-      ],
-    });
+#### `agents/api/`
 
-    return response.content[0].text;
-  },
-});
+| File | Purpose |
+|------|---------|
+| `server.js` | Express HTTP server (port 3000). Three endpoints: `GET /health` (no auth), `POST /orchestrate` (auth), `POST /agent/:name` (auth). Auth via `X-Api-Key` header against `AGENT_API_KEY` env var. Dev mode if key not set. |
 
-// Orchestrator task
-export const marketingPipelineTask = task({
-  id: "marketing-pipeline",
-  run: async (payload: { niche: string; userId: string }) => {
-    console.log(`Starting marketing pipeline for: ${payload.niche}`);
-
-    // Phase 1: Research (runs sub-task, waits for result)
-    const research = await researchTask.triggerAndWait({
-      niche: payload.niche,
-      sessionId: crypto.randomUUID(),
-    });
-
-    // Phase 2: Content generation (parallel)
-    const [adContent, seoContent] = await Promise.all([
-      contentGenerationTask.triggerAndWait({
-        research: research.output,
-        niche: payload.niche,
-      }),
-      // Add more parallel tasks here
-    ]);
-
-    // Phase 3: Save to memory
-    await saveToMemoryTask.triggerAndWait({
-      key: `marketing:pipeline:${payload.niche}:${Date.now()}`,
-      content: JSON.stringify({ research: research.output, adContent }),
-    });
-
-    return {
-      success: true,
-      niche: payload.niche,
-      contentPieces: 20,
-    };
-  },
-});
-```
-
------
-
-## 8. VPS Deployment (Hostinger) — Data Sovereignty Setup
-
-### 8.1 VPS Architecture Overview
+**Endpoints:**
 
 ```
-Hostinger VPS (your sovereign infrastructure)
-├── nginx (reverse proxy + SSL)
-├── Docker Compose
-│   ├── neo4j (graph database — Graphiti backend)
-│   ├── chroma (vector database)
-│   ├── graphiti (memory service)
-│   ├── trigger-dev (workflow orchestrator)
-│   ├── postgres (Trigger.dev database)
-│   └── redis (queues + caching)
-└── Caddy OR nginx (with Let's Encrypt SSL)
+GET  /health              → { status: "ok", uptime, timestamp }
+POST /orchestrate         → runs full orchestrator, returns { result }
+POST /agent/:name         → runs named sub-agent directly, returns { agent, result }
+                            :name ∈ [researcher, coder, writer, marketer, pm]
 ```
 
-### 8.2 VPS Provisioning Script
+---
+
+### `mcp-servers/`
+
+#### `mcp-servers/memory/`
+
+| File | Purpose |
+|------|---------|
+| `index.js` | MCP server that exposes Graphiti to Claude Code as two tools: `memory_write` and `memory_search`. Runs as a stdio process. Claude Code spawns it on startup via `.claude/settings.json`. |
+
+---
+
+### `tools/`
+
+| File | Purpose |
+|------|---------|
+| `memory.js` | Low-level Graphiti HTTP client. `writeMemory({ key, content, entity })` → posts episode to Graphiti. `readMemory({ query, limit, entity })` → searches and returns formatted results. Used by both the MCP server and the orchestrator directly. |
+
+---
+
+### `workflows/`
+
+Trigger.dev v3 TypeScript workflows. Each is a durable, resumable pipeline.
+
+| File | Purpose |
+|------|---------|
+| `marketing-pipeline.ts` | 3-phase pipeline: research niche → generate 20 ad angles with hooks/bodies/CTAs → cluster into campaign themes → save to memory. Parallel execution for content variants. |
+| `coding-sprint.ts` | Scoped development workflow: spec → architecture → implementation → tests → PR description. Delegates to coder sub-agent. |
+| `pm-daily-standup.ts` | Pulls context from Monday.com + GitHub + memory → generates formatted standup for all three business domains → posts to configured channel. |
+
+---
+
+### `scripts/`
+
+| File | Purpose |
+|------|---------|
+| `provision-vps.sh` | **Run once** on a fresh Hostinger VPS. 8 phases: system update, packages, Docker, Node.js 20, Nginx + Certbot, app directory, UFW firewall, fail2ban. |
+| `deploy.sh` | **Run from local machine** to deploy to VPS. Phase 0: validate env vars. Phase 1: rsync (excludes `.env`, `node_modules`, `.git`). Phase 2: SSH remote `npm install` + `docker compose pull` + rolling restart. Phase 3: health check via HTTPS. |
+| `configure-nginx.sh` | Writes the nginx site config using `$DOMAIN` from `.env`, symlinks to `sites-enabled`, tests config, reloads nginx. Run once after first deploy. |
+| `validate-env.sh` | Checks all required env vars are present in a `.env` file. Called by `deploy.sh` before syncing. Exits non-zero if anything is missing. |
+| `backup.sh` | Daily backup of Neo4j (graph dump) and Postgres (pg_dump). Compresses to dated tarball. Retains 7 days. Designed for cron: `0 2 * * *`. |
+
+---
+
+### `.claude/`
+
+| File | Purpose |
+|------|---------|
+| `settings.json` | MCP server configuration for Claude Code. Registers: `memory` (custom Graphiti bridge), `brave-search`, `filesystem`, `github`, `playwright`, `notion`. Also sets tool permissions. |
+| `commands/research.md` | `/research <topic>` — triggers research protocol: memory lookup → web search → structured intel brief → save to memory. |
+| `commands/standup.md` | `/standup` — pulls Monday.com + GitHub + memory → generates daily standup across all three domains. |
+| `commands/programmatic-ad.md` | `/programmatic-ad <niche>` — triggers Cody Schneider ad pipeline: research → 20 angles → campaign clusters → JSON output. |
+| `commands/project-brief.md` | `/project-brief <initiative>` — generates structured project brief: problem → approach → requirements → risks → timeline. |
+
+---
+
+### `nginx/`
+
+| File | Purpose |
+|------|---------|
+| `agent-system.conf` | Nginx config template. Two server blocks: `trigger.DOMAIN` (→ 127.0.0.1:3040) and `api.DOMAIN` (→ 127.0.0.1:3050). SSL/TLS 1.2+, WebSocket upgrade for Trigger.dev, 300s read timeout. Health endpoint unauthenticated. |
+
+---
+
+### `docs/`
+
+| File | Purpose |
+|------|---------|
+| `CRD.md` | Customer Requirements Document. 7 functional requirements (FR-01–07), 6 non-functional requirements (NFR-01–06), 10 acceptance criteria (AC-01–10). Source of truth for what the system must do. |
+| `PRD.mdx` | Persistent Requirement Document v1.0.0. 11 features (F-01–11), KPI dashboard (8 metrics), 4-phase deployment checklist, 6 open risks. Git history is the version log. Tag format: `prd-v1.x.y`. |
+
+---
+
+## Installation
+
+### Prerequisites
 
 ```bash
-#!/bin/bash
-# scripts/provision-vps.sh
-# Run once on fresh Hostinger VPS
-
-set -e
-
-echo "=== Provisioning Agent Infrastructure ==="
-
-# 1. System updates
-apt-get update && apt-get upgrade -y
-
-# 2. Docker
-curl -fsSL https://get.docker.com | sh
-systemctl enable docker
-usermod -aG docker $USER
-
-# 3. Docker Compose v2
-apt-get install docker-compose-plugin -y
-
-# 4. Nginx
-apt-get install nginx certbot python3-certbot-nginx -y
-
-# 5. Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt-get install nodejs -y
-
-# 6. Create app directory
-mkdir -p /opt/agent-system
-chown -R $USER:$USER /opt/agent-system
-
-# 7. Firewall
-ufw allow 22    # SSH
-ufw allow 80    # HTTP
-ufw allow 443   # HTTPS
-ufw --force enable
-
-echo "=== Provisioning complete ==="
+node --version    # 20.x+ required
+docker --version  # Docker 24+ with Compose plugin
+npm install -g @anthropic-ai/claude-code
 ```
 
-### 8.3 Production Docker Compose (`docker-compose.prod.yml`)
-
-```yaml
-version: "3.9"
-
-networks:
-  agent-net:
-    driver: bridge
-
-volumes:
-  neo4j_data:
-  chroma_data:
-  postgres_data:
-  redis_data:
-
-services:
-  # === Memory Layer ===
-  neo4j:
-    image: neo4j:5.15
-    restart: always
-    networks: [agent-net]
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
-      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
-      NEO4J_dbms_memory_heap_initial__size: 512m
-      NEO4J_dbms_memory_heap_max__size: 2g
-    volumes:
-      - neo4j_data:/data
-    # NOT exposed externally — only internal network
-
-  graphiti:
-    image: zepai/graphiti:latest
-    restart: always
-    networks: [agent-net]
-    ports:
-      - "127.0.0.1:8000:8000"    # Localhost only
-    environment:
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-    depends_on:
-      - neo4j
-
-  chroma:
-    image: chromadb/chroma:latest
-    restart: always
-    networks: [agent-net]
-    ports:
-      - "127.0.0.1:8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-
-  # === Orchestration Layer ===
-  postgres:
-    image: postgres:16
-    restart: always
-    networks: [agent-net]
-    environment:
-      POSTGRES_USER: trigger
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: trigger_dev
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    networks: [agent-net]
-    volumes:
-      - redis_data:/data
-
-  trigger-webapp:
-    image: ghcr.io/triggerdotdev/trigger.dev:latest
-    restart: always
-    networks: [agent-net]
-    ports:
-      - "127.0.0.1:3040:3000"
-    environment:
-      DATABASE_URL: postgresql://trigger:${POSTGRES_PASSWORD}@postgres:5432/trigger_dev
-      REDIS_URL: redis://redis:6379
-      SECRET_KEY: ${TRIGGER_SECRET_KEY}
-      MAGIC_LINK_SECRET: ${TRIGGER_MAGIC_LINK_SECRET}
-      ENCRYPTION_KEY: ${TRIGGER_ENCRYPTION_KEY}
-      APP_ORIGIN: https://trigger.yourdomain.com
-      LOGIN_ORIGIN: https://trigger.yourdomain.com
-      NODE_ENV: production
-    depends_on:
-      - postgres
-      - redis
-
-  # === Agent API ===
-  agent-api:
-    build: .
-    restart: always
-    networks: [agent-net]
-    ports:
-      - "127.0.0.1:3050:3000"
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      GRAPHITI_URL: http://graphiti:8000
-      CHROMA_HOST: chroma
-      CHROMA_PORT: 8000
-      NODE_ENV: production
-    volumes:
-      - ./agents:/app/agents:ro
-      - ./tools:/app/tools:ro
-```
-
-### 8.4 Nginx Configuration (`/etc/nginx/sites-available/agent-system`)
-
-```nginx
-# Trigger.dev UI
-server {
-    listen 443 ssl;
-    server_name trigger.yourdomain.com;
-    
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    
-    location / {
-        proxy_pass http://127.0.0.1:3040;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-# Agent API
-server {
-    listen 443 ssl;
-    server_name api.yourdomain.com;
-    
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    
-    # API key authentication at nginx level
-    location / {
-        if ($http_x_api_key != "${AGENT_API_KEY}") {
-            return 401;
-        }
-        proxy_pass http://127.0.0.1:3050;
-        proxy_set_header Host $host;
-    }
-}
-```
-
-### 8.5 Deployment Script (`scripts/deploy.sh`)
+### Local Setup
 
 ```bash
-#!/bin/bash
-# scripts/deploy.sh — run from local machine to deploy to VPS
+# 1. Clone
+git clone https://github.com/MalikJPalamar/CognitiveCompany.git
+cd CognitiveCompany
 
-set -e
-
-VPS_HOST=${VPS_HOST:-"your-vps-ip"}
-VPS_USER=${VPS_USER:-"malik"}
-APP_DIR="/opt/agent-system"
-
-echo "=== Deploying to $VPS_HOST ==="
-
-# 1. Sync files (exclude secrets)
-rsync -avz --exclude='.env' --exclude='node_modules' --exclude='.git' \
-  ./ ${VPS_USER}@${VPS_HOST}:${APP_DIR}/
-
-# 2. SSH and deploy
-ssh ${VPS_USER}@${VPS_HOST} << 'EOF'
-  cd /opt/agent-system
-  
-  # Pull new images
-  docker compose -f docker-compose.prod.yml pull
-  
-  # Rolling restart (zero downtime)
-  docker compose -f docker-compose.prod.yml up -d --no-deps agent-api trigger-webapp
-  
-  # Health check
-  sleep 5
-  curl -f http://localhost:3050/health || echo "Warning: API health check failed"
-  
-  echo "Deployment complete"
-EOF
-```
-
------
-
-## 9. Complete File Checklist
-
-Use this as your implementation progress tracker:
-
-```
-Phase 1 — Foundation (Days 1-2)
-  [ ] Hostinger VPS provisioned (provision-vps.sh)
-  [ ] Docker + Compose installed
-  [ ] .env file configured with all keys
-  [ ] docker-compose.prod.yml deployed
-  [ ] neo4j + graphiti running and reachable
-  [ ] SSL certificates issued (certbot)
-
-Phase 2 — Claude Code Setup (Days 2-3)  
-  [ ] Root CLAUDE.md written
-  [ ] .claude/settings.json with MCP servers
-  [ ] Memory MCP server running
-  [ ] Brave Search MCP configured
-  [ ] GitHub MCP configured
-  [ ] Claude Code successfully using memory (test: /memory_search "malik")
-
-Phase 3 — Agent Architecture (Days 3-5)
-  [ ] Orchestrator agent written
-  [ ] Researcher sub-agent written + CLAUDE.md
-  [ ] Coder sub-agent written + CLAUDE.md
-  [ ] Marketer sub-agent written + CLAUDE.md
-  [ ] PM sub-agent written + CLAUDE.md
-  [ ] Tool delegation tested end-to-end
-
-Phase 4 — Custom Commands (Days 4-5)
-  [ ] /research command working
-  [ ] /standup command working
-  [ ] /programmatic-ad command working
-  [ ] All commands verified against memory MCP
-
-Phase 5 — Workflow Orchestration (Days 5-7)
-  [ ] Trigger.dev self-hosted and accessible
-  [ ] marketing-pipeline.ts deployed
-  [ ] First workflow run successfully
-  [ ] Workflow triggerable via API endpoint
-
-Phase 6 — Hardening (Days 7-10)
-  [ ] Nginx + SSL fully configured
-  [ ] API key auth on all public endpoints
-  [ ] Log aggregation setup (optional: Loki)
-  [ ] Backup cron for neo4j + postgres
-  [ ] Monitoring (optional: Uptime Kuma)
-```
-
------
-
-## 10. Quick Start Commands
-
-```bash
-# Clone and bootstrap
-git clone [your-repo] agent-workspace
-cd agent-workspace
-cp .env.example .env
-# → Fill in .env
-
-# Start local dev environment
-docker compose up -d
-
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Test memory is working
-node -e "import('./tools/memory.js').then(m => m.writeMemory({key: 'test', content: 'hello world'}))"
+# 3. Configure environment
+cp .env.example .env
+# Edit .env — fill in every required value (see .env.example for descriptions)
 
-# Start Claude Code in this workspace
+# 4. Start local services (Neo4j + Graphiti + ChromaDB)
+docker compose up -d
+
+# 5. Wait for services to be healthy (~30s)
+docker compose ps
+
+# 6. Test memory layer
+node -e "
+  import('./tools/memory.js').then(m =>
+    m.writeMemory({ key: 'test:init', content: 'System online', entity: 'system' })
+      .then(r => console.log('Memory OK:', r))
+      .catch(e => console.error('Memory FAIL:', e))
+  )
+"
+
+# 7. Start Claude Code in this workspace
 claude
-
-# Try your first agent command
-# (Inside Claude Code)
-# /research "best JavaScript frameworks for agent tools in 2025"
 ```
 
------
+### Verify MCP Servers
 
-*This playbook is a living document. Update CLAUDE.md as your agent’s capabilities grow. The architecture is designed to be modular — you can add new sub-agents, MCP servers, and workflows without touching existing ones.*
+Inside Claude Code:
+```
+# These should work without errors:
+/memory_search "test"
+/research "test query"
+```
 
-**Version 1.0 — February 2025**
+---
+
+## VPS Deployment — Step by Step
+
+### Step 1 — Provision the VPS (once)
+
+```bash
+# From your LOCAL machine — SSH into fresh Hostinger VPS and run provisioner
+ssh root@YOUR_VPS_IP 'bash -s' < scripts/provision-vps.sh
+
+# Log out and back in for docker group membership to take effect
+ssh malik@YOUR_VPS_IP
+exit
+```
+
+What `provision-vps.sh` does:
+1. `apt update && apt upgrade`
+2. Installs: curl, wget, git, unzip, htop, ufw, fail2ban
+3. Installs Docker + docker-compose-plugin
+4. Installs Node.js 20 (via NodeSource)
+5. Installs nginx + certbot
+6. Creates `/opt/agent-system`, owned by deploy user
+7. Configures UFW: allow 22/80/443
+8. Enables fail2ban
+
+---
+
+### Step 2 — Configure `.env`
+
+Fill in every value in `.env`. Required fields:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+GRAPHITI_URL=http://localhost:8000
+NEO4J_PASSWORD=<strong-password>
+CHROMA_HOST=localhost
+CHROMA_PORT=8001
+NOTION_TOKEN=secret_...
+MONDAY_API_KEY=...
+GITHUB_TOKEN=ghp_...
+BRAVE_SEARCH_API_KEY=BSA...
+TRIGGER_SECRET_KEY=<32-char-random>
+TRIGGER_MAGIC_LINK_SECRET=<32-char-random>
+TRIGGER_ENCRYPTION_KEY=<32-char-random>
+POSTGRES_PASSWORD=<strong-password>
+DATABASE_URL=postgresql://trigger:<POSTGRES_PASSWORD>@localhost:5432/trigger_dev
+VPS_HOST=<your-vps-ip>
+VPS_USER=malik
+AGENT_API_KEY=<api-key-for-http-auth>
+DOMAIN=yourdomain.com
+```
+
+Copy `.env` to VPS:
+```bash
+scp .env malik@YOUR_VPS_IP:/opt/agent-system/.env
+```
+
+---
+
+### Step 3 — First Deploy
+
+```bash
+# From LOCAL machine
+VPS_HOST=YOUR_VPS_IP bash scripts/deploy.sh
+```
+
+What `deploy.sh` does:
+1. Runs `validate-env.sh` — exits if any required var is missing
+2. `rsync` all files to `/opt/agent-system/` on VPS (skips `.env`, `node_modules`, `.git`)
+3. SSH remote: `npm install --production`
+4. SSH remote: `docker compose -f docker-compose.prod.yml pull`
+5. SSH remote: starts core services first (neo4j, graphiti, chroma, postgres, redis) — waits 10s
+6. SSH remote: starts app services (trigger-webapp, agent-api)
+7. Health check: `GET https://api.DOMAIN/health`
+
+---
+
+### Step 4 — Configure Nginx + SSL
+
+```bash
+# On the VPS
+ssh malik@YOUR_VPS_IP
+
+# Configure nginx (reads DOMAIN from /opt/agent-system/.env)
+bash /opt/agent-system/scripts/configure-nginx.sh
+
+# Issue SSL certificates
+sudo certbot --nginx \
+  -d api.yourdomain.com \
+  -d trigger.yourdomain.com \
+  --agree-tos --non-interactive \
+  -m your@email.com
+
+# Verify SSL auto-renewal
+sudo certbot renew --dry-run
+```
+
+---
+
+### Step 5 — Deploy Trigger.dev Workflows
+
+```bash
+# From LOCAL machine — deploy TypeScript workflows to your self-hosted Trigger.dev
+TRIGGER_API_URL=https://trigger.yourdomain.com \
+  npx trigger.dev@latest deploy
+```
+
+---
+
+### Step 6 — Set Up Backup Cron
+
+```bash
+# On the VPS
+crontab -e
+
+# Add this line:
+0 2 * * * /opt/agent-system/scripts/backup.sh >> /var/log/agent-backup.log 2>&1
+```
+
+---
+
+### Step 7 — Verify Everything
+
+```bash
+# Health check (no auth required)
+curl https://api.yourdomain.com/health
+
+# Orchestrate test (auth required)
+curl -X POST https://api.yourdomain.com/orchestrate \
+  -H "X-Api-Key: YOUR_AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"request": "What are my active projects?"}'
+
+# Sub-agent direct call
+curl -X POST https://api.yourdomain.com/agent/researcher \
+  -H "X-Api-Key: YOUR_AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"request": {"query": "Hostinger VPS performance benchmarks", "depth": "surface"}}'
+
+# Trigger.dev UI
+open https://trigger.yourdomain.com
+```
+
+---
+
+## Using Claude Code (Local)
+
+Start Claude Code from the project root:
+
+```bash
+claude
+```
+
+Available slash commands:
+
+| Command | What it does |
+|---------|-------------|
+| `/research <topic>` | Deep research → structured intel brief → saved to memory |
+| `/standup` | Pulls Monday + GitHub + memory → daily standup across all domains |
+| `/programmatic-ad <niche>` | Cody Schneider ad pipeline → 20 angles → campaign clusters → JSON |
+| `/project-brief <initiative>` | Structured brief: problem, approach, requirements, risks |
+
+---
+
+## Redeployment (After Changes)
+
+```bash
+# Local code change → push to VPS
+VPS_HOST=YOUR_VPS_IP bash scripts/deploy.sh
+
+# Workflow change → redeploy to Trigger.dev
+npx trigger.dev@latest deploy
+```
+
+---
+
+## Architecture Decisions
+
+| Component | Choice | Reason |
+|-----------|--------|--------|
+| Orchestrator model | claude-opus-4-6 | Highest reasoning capability for planning and synthesis |
+| Sub-agent model | claude-sonnet-4-6 | Fast, capable, cost-effective for specialized tasks |
+| Memory | Graphiti + Neo4j | Temporal graph — knows *when* facts changed, not just *what* |
+| Vector search | ChromaDB | Self-hosted semantic search, no cloud dependency |
+| Workflow engine | Trigger.dev (self-hosted) | Durable execution — workflows survive crashes and resume |
+| Container orchestration | Docker Compose | Single VPS, no Kubernetes complexity |
+| Reverse proxy | Nginx | SSL termination, WebSocket support, battle-tested |
+| Auth | X-Api-Key (app-level) | Simple, auditable, no OAuth complexity for internal API |
+| Deployment | rsync + SSH | Stateless code sync + persistent Docker volumes = clean deploys |
+| Backup | Daily dumps + 7-day rotation | Simple, verifiable, no managed backup service needed |
+
+---
+
+## Post-Deploy Hardening (Recommended)
+
+| Item | How |
+|------|-----|
+| Rate limiting | Add `limit_req_zone` to nginx config for `/orchestrate` endpoint |
+| Uptime monitoring | Add `https://api.yourdomain.com/health` to Uptime Kuma (self-hosted) |
+| Backup verification | Monthly: `tar -xzf` a backup and do a test restore to staging |
+| Log aggregation | `docker compose logs -f agent-api` or add Loki + Grafana stack |
+| Secrets rotation | Rotate `AGENT_API_KEY`, `TRIGGER_SECRET_KEY`, `POSTGRES_PASSWORD` quarterly |
+
+---
+
+## Project Documentation
+
+- [`docs/CRD.md`](docs/CRD.md) — Customer Requirements Document (FR-01–07, NFR-01–06, AC-01–10)
+- [`docs/PRD.mdx`](docs/PRD.mdx) — Persistent Requirement Document v1.0.0 (features, KPIs, risks, deployment checklist)
+- [`CLAUDE.md`](CLAUDE.md) — Agent constitution (identity, memory protocol, communication style)
+
+---
+
+## File Count
+
+41 files · 3,632 lines of implementation
+
+```
+agents/          8 JS files  — orchestrator + 5 sub-agents + API server
+mcp-servers/     1 JS file   — Graphiti MCP bridge
+tools/           1 JS file   — memory read/write client
+workflows/       3 TS files  — marketing, coding sprint, PM standup
+scripts/         5 SH files  — provision, deploy, configure-nginx, validate-env, backup
+nginx/           1 conf file — reverse proxy + SSL config
+docker-compose   2 YML files — local dev + production
+docs/            2 MD files  — CRD + PRD
+.claude/         5 files     — settings + 4 slash commands
+```
+
+---
+
+*Living document. Update `CLAUDE.md` as capabilities grow. Architecture is modular — add sub-agents, MCP servers, and workflows without touching existing ones.*
