@@ -6,6 +6,12 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
+function extractText(response) {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block) throw new Error("Writer: response contained no text block");
+  return block.text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+}
+
 const WRITER_SYSTEM_PROMPT = `
 You are the Content specialist for Malik's agent system (BuilderBee / Centaurion.me / AOB).
 
@@ -53,7 +59,7 @@ Return ONLY valid JSON matching the output contract. No extra text.
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const rawText = response.content[0].text;
+  const rawText = extractText(response);
 
   try {
     return JSON.parse(rawText);

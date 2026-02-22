@@ -7,6 +7,12 @@ import { readMemory } from "../../tools/memory.js";
 
 const client = new Anthropic();
 
+function extractText(response) {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block) throw new Error("PM: response contained no text block");
+  return block.text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+}
+
 const PM_SYSTEM_PROMPT = `
 You are the Project Management specialist for Malik's agent system.
 
@@ -59,12 +65,20 @@ Return ONLY valid JSON. No extra text.
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const rawText = response.content[0].text;
+  const rawText = extractText(response);
 
   try {
     return JSON.parse(rawText);
   } catch {
-    return { raw_output: rawText };
+    // Return a contract-compliant skeleton for standup (the most common call)
+    return {
+      date: new Date().toISOString().slice(0, 10),
+      projects: { builderbee: {}, centaurion: {}, aob: {} },
+      decisions_needed: [],
+      overdue_items: [],
+      _parse_error: true,
+      _raw: rawText,
+    };
   }
 }
 

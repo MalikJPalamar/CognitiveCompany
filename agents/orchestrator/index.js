@@ -9,6 +9,17 @@ import { readMemory, writeMemory } from "../../tools/memory.js";
 import { getSystemPrompt } from "./system-prompt.js";
 
 const client = new Anthropic();
+const MEMORY_TIMEOUT_MS = 5000; // readMemory gets 5 s before we proceed without it
+const MAX_LOOP_TURNS = 20;       // safety ceiling on the agentic loop
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout: ${label} exceeded ${ms}ms`)), ms)
+    ),
+  ]);
+}
 
 /**
  * Tool definitions for the orchestrator.
@@ -155,16 +166,14 @@ async function processToolCalls(response, messages) {
 
     try {
       if (name === "write_memory") {
-        result = await writeMemory(input);
+        await writeMemory(input);
         result = { success: true, key: input.key };
       } else {
-        // Sub-agent delegation — in a full implementation these would
-        // spawn actual sub-agent processes using the Task tool or spawn().
-        // Here we return a structured placeholder that shows the pattern.
         result = await delegateToSubAgent(name, input);
       }
     } catch (err) {
-      result = { error: err.message };
+      console.error(`[orchestrator] tool "${name}" failed:`, err.message);
+      result = { error: err.message, tool: name };
     }
 
     toolResults.push({
@@ -203,10 +212,26 @@ async function delegateToSubAgent(toolName, input) {
     messages: [{ role: "user", content: subAgentPrompt }],
   });
 
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (!textBlock) throw new Error(`${agentName} returned no text content`);
+
+  const output = textBlock.text;
+  const taskId = JSON.parse(subAgentPrompt).task_id;
+  const outputPath = path.join("/tmp/agent-outputs", taskId, "result.json");
+
+  // Persist output to disk so it can be verified and audited
+  await fs.writeFile(
+    outputPath,
+    JSON.stringify({ agent: agentName, output, timestamp: new Date().toISOString() }, null, 2)
+  );
+
+  console.error(`[orchestrator] ${agentName} complete — ${response.usage.output_tokens} tokens → ${outputPath}`);
+
   return {
     agent: agentName,
-    output: response.content[0].text,
+    output,
     tokens_used: response.usage.output_tokens,
+    output_path: outputPath,
   };
 }
 
@@ -232,19 +257,26 @@ async function buildSubAgentPrompt(agentName, input) {
  * @param {object} sessionContext - Optional extra context
  */
 export async function runOrchestrator(userRequest, sessionContext = {}) {
-  // Step 1: Load relevant memory
-  const memories = await readMemory({
-    query: userRequest,
-    limit: 10,
-  }).catch(() => []); // Gracefully degrade if memory service is down
+  // Step 1: Load relevant memory — bounded by timeout so a slow/down Graphiti
+  // doesn't stall the orchestrator indefinitely.
+  const memories = await withTimeout(
+    readMemory({ query: userRequest, limit: 10 }),
+    MEMORY_TIMEOUT_MS,
+    "readMemory"
+  ).catch((err) => {
+    console.error("[orchestrator] memory read failed (proceeding without):", err.message);
+    return [];
+  });
 
   // Step 2: Build context-rich system prompt
   const systemPrompt = getSystemPrompt({ memories, sessionContext });
 
-  // Step 3: Agentic loop
+  // Step 3: Agentic loop (capped at MAX_LOOP_TURNS to prevent runaway spending)
   const messages = [{ role: "user", content: userRequest }];
+  let turns = 0;
 
-  while (true) {
+  while (turns < MAX_LOOP_TURNS) {
+    turns++;
     const response = await client.messages.create({
       model: "claude-opus-4-6",
       max_tokens: 8096,
@@ -257,7 +289,6 @@ export async function runOrchestrator(userRequest, sessionContext = {}) {
     messages.push({ role: "assistant", content: response.content });
 
     if (response.stop_reason === "end_turn") {
-      // Final text response
       const textBlock = response.content.find((b) => b.type === "text");
       return textBlock?.text ?? "";
     }
@@ -268,9 +299,11 @@ export async function runOrchestrator(userRequest, sessionContext = {}) {
       continue;
     }
 
-    // Unexpected stop reason
-    break;
+    // Unexpected stop reason — surface it rather than silently returning undefined
+    throw new Error(`Orchestrator stopped with unexpected reason: ${response.stop_reason}`);
   }
+
+  throw new Error(`Orchestrator exceeded MAX_LOOP_TURNS (${MAX_LOOP_TURNS}) — possible infinite loop`);
 }
 
 // CLI entry point

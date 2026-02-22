@@ -139,5 +139,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // Start server on stdio transport
+// Errors are written to stderr so Claude Code can surface them.
 const transport = new StdioServerTransport();
-await server.connect(transport);
+
+try {
+  await server.connect(transport);
+} catch (err) {
+  process.stderr.write(`[memory-mcp] failed to connect: ${err.message}\n`);
+  process.exit(1);
+}
+
+// Graceful shutdown — allows Claude Code to cleanly disconnect
+process.on("SIGTERM", () => {
+  process.stderr.write("[memory-mcp] SIGTERM received, shutting down\n");
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  process.stderr.write("[memory-mcp] SIGINT received, shutting down\n");
+  process.exit(0);
+});
+
+// Catch unhandled rejections (e.g. Graphiti down on startup) and report
+// them to stderr rather than silently crashing with no message.
+process.on("unhandledRejection", (reason) => {
+  process.stderr.write(`[memory-mcp] unhandled rejection: ${reason}\n`);
+  // Do NOT exit — the server may still handle other requests
+});

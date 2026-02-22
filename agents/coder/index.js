@@ -6,6 +6,13 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
+function extractText(response) {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block) throw new Error("Coder: response contained no text block");
+  // Coder output is prose/code, not JSON — return as-is (no fence stripping needed)
+  return block.text;
+}
+
 const CODER_SYSTEM_PROMPT = `
 You are the Engineering specialist for Malik's agent system.
 
@@ -48,7 +55,7 @@ ${JSON.stringify(task, null, 2)}
 
   return {
     output_type: task.output_type ?? "snippet",
-    content: response.content[0].text,
+    content: extractText(response),
     tokens_used: response.usage.output_tokens,
   };
 }

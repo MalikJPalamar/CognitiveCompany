@@ -7,6 +7,12 @@ import { readMemory } from "../../tools/memory.js";
 
 const client = new Anthropic();
 
+function extractText(response) {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block) throw new Error("Researcher: response contained no text block");
+  return block.text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+}
+
 const RESEARCHER_SYSTEM_PROMPT = `
 You are the Research specialist for Malik's agent system.
 
@@ -63,12 +69,11 @@ Return ONLY valid JSON matching the output contract. No extra text.
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const rawText = response.content[0].text;
+  const rawText = extractText(response);
 
   try {
     return JSON.parse(rawText);
   } catch {
-    // If the model returned non-JSON, wrap it
     return {
       query: task.query,
       summary: rawText,

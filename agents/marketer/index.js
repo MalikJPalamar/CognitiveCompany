@@ -6,6 +6,17 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
+/**
+ * Extract text content from a Claude API response, accounting for
+ * JSON wrapped in markdown code fences (```json ... ```).
+ */
+function extractText(response) {
+  const block = response.content.find((b) => b.type === "text");
+  if (!block) throw new Error("Marketer: response contained no text block");
+  // Strip optional markdown code fences before parsing
+  return block.text.replace(/^```(?:json)?\s*/m, "").replace(/\s*```\s*$/m, "").trim();
+}
+
 const MARKETER_SYSTEM_PROMPT = `
 You are the Marketing specialist for Malik's agent system (BuilderBee / Centaurion.me / AOB).
 
@@ -48,12 +59,21 @@ Return ONLY valid JSON. No extra text.
     messages: [{ role: "user", content: userMessage }],
   });
 
-  const rawText = response.content[0].text;
+  const rawText = extractText(response);
 
   try {
     return JSON.parse(rawText);
   } catch {
-    return { raw_output: rawText };
+    // Return a contract-compliant skeleton so callers can always access
+    // campaign_themes without null-checking for a raw_output field.
+    return {
+      niche: task.niche ?? "unknown",
+      platform: task.platform ?? "unknown",
+      budget_tier: task.budget_tier ?? "bootstrap",
+      campaign_themes: [],
+      _parse_error: true,
+      _raw: rawText,
+    };
   }
 }
 

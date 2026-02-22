@@ -19,7 +19,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/malik/agent-workspace"
+        "${HOME}/CognitiveCompany"
       ]
     },
     "github": {
