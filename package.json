@@ -1,0 +1,27 @@
+{
+  "name": "cognitive-company-agent-workspace",
+  "version": "1.0.0",
+  "description": "Agentic system for BuilderBee / Centaurion.me / AOB — Malik's AI infrastructure",
+  "type": "module",
+  "scripts": {
+    "start": "node agents/orchestrator/index.js",
+    "dev": "node --watch agents/orchestrator/index.js",
+    "memory:test": "node -e \"import('./tools/memory.js').then(m => m.writeMemory({key: 'test', content: 'hello world'}).then(console.log))\"",
+    "mcp:memory": "node mcp-servers/memory/index.js",
+    "docker:dev": "docker compose up -d",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@trigger.dev/sdk": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
