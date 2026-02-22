@@ -9,6 +9,7 @@ RUN npm install --production
 
 # Copy application code
 COPY agents/ ./agents/
+COPY .env.example ./.env.example
 COPY tools/ ./tools/
 COPY mcp-servers/ ./mcp-servers/
 
@@ -18,4 +19,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 EXPOSE 3000
 
-CMD ["node", "agents/orchestrator/index.js"]
+CMD ["node", "agents/api/server.js"]

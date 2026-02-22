@@ -3,6 +3,8 @@
 // Entry point for the agent system.
 
 import Anthropic from "@anthropic-ai/sdk";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { readMemory, writeMemory } from "../../tools/memory.js";
 import { getSystemPrompt } from "./system-prompt.js";
 
@@ -191,8 +193,8 @@ async function delegateToSubAgent(toolName, input) {
   const agentName = agentMap[toolName];
   if (!agentName) throw new Error(`Unknown tool: ${toolName}`);
 
-  // Build a focused prompt for the sub-agent
-  const subAgentPrompt = buildSubAgentPrompt(agentName, input);
+  // Build a focused prompt for the sub-agent (also creates output dir)
+  const subAgentPrompt = await buildSubAgentPrompt(agentName, input);
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -208,9 +210,13 @@ async function delegateToSubAgent(toolName, input) {
   };
 }
 
-function buildSubAgentPrompt(agentName, input) {
+async function buildSubAgentPrompt(agentName, input) {
   const taskId = `${agentName}-${Date.now()}`;
-  const outputPath = `/tmp/agent-outputs/${taskId}/result.json`;
+  const outputDir = path.join("/tmp/agent-outputs", taskId);
+  const outputPath = path.join(outputDir, "result.json");
+
+  // Guarantee the output directory exists before sub-agent runs
+  await fs.mkdir(outputDir, { recursive: true });
 
   return JSON.stringify({
     task_id: taskId,

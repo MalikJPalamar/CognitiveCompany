@@ -5,6 +5,8 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+// Requires @modelcontextprotocol/sdk@^1.0.0
+// Both schemas are exported from the package's types.js entry point.
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
