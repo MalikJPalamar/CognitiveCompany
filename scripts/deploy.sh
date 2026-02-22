@@ -16,6 +16,10 @@ APP_DIR="/opt/agent-system"
 echo "=== Deploying to ${VPS_USER}@${VPS_HOST}:${APP_DIR} ==="
 echo "Timestamp: $(date)"
 
+# ── Pre-flight: validate env vars ─────────────────────────────────────────────
+echo "[0/4] Validating environment..."
+bash "$(dirname "$0")/validate-env.sh"
+
 # ── 1. Sync files ─────────────────────────────────────────────────────────────
 echo "[1/4] Syncing files..."
 rsync -avz \

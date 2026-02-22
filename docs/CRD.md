@@ -1,15 +1,15 @@
-# Customer Requirements Document (CRD)
+# Critical Requirements Document (CRD)
 ## Agentic Engineering Workspace — BuilderBee / Centaurion.me / AOB
 
-**Customer:** Malik (operator / fractional CEO)
-**Document type:** CRD — stable, operator-perspective requirements
+**Operator:** Malik (systems engineer / fractional CEO)
+**Document type:** CRD — stable, operator-perspective requirements. Does not version.
 **Status:** Approved
 **Last reviewed:** 2026-02-22
-**Linked PRD:** [docs/PRD.md](./PRD.md)
+**Linked PRD:** [docs/PRD.mdx](./PRD.mdx)
 
 > The CRD captures *what* Malik needs. The PRD captures *how* the system delivers it.
-> The CRD does not version — it is the source of truth for operator intent.
-> When CRD requirements change, a new PRD version is triggered.
+> The CRD does not version — it is the stable source of truth for operator intent.
+> When CRD requirements change, a new PRD version is triggered (MINOR or MAJOR bump).
 
 ---
 
@@ -174,4 +174,4 @@
 
 ---
 
-*This document does not version. Changes to these requirements trigger a new PRD version with KPI impact analysis.*
+*This document does not version. Changes to these requirements trigger a new PRD version (MINOR or MAJOR) with full implications analysis documented in the commit and in `docs/PRD.mdx`.*

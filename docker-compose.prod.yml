@@ -127,6 +127,8 @@ services:
       GRAPHITI_URL: http://graphiti:8000
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
+      AGENT_API_KEY: ${AGENT_API_KEY}
+      DOMAIN: ${DOMAIN:-yourdomain.com}
       NODE_ENV: production
     volumes:
       - ./agents:/app/agents:ro
